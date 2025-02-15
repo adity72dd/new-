@@ -4,7 +4,7 @@ import asyncio
 from telegram import Update
 from telegram.ext import Application, CommandHandler, CallbackContext
 
-TELEGRAM_BOT_TOKEN = '7246047709:AAElzJRbgodpAq62ql3aSF2CVXkMbHqdzvA'  # Replace with your bot token
+TELEGRAM_BOT_TOKEN = '7094229080:AAEDql1mLp-JEEpw9n9vBzRDfVZ965mzPy8'  # Replace with your bot token
 ADMIN_ID = 6479495033  # Replace with your admin user ID
 APPROVED_USERS_FILE = 'approved_users.json'
 
