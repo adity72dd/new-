@@ -19,10 +19,11 @@ async def start(update: Update, context: CallbackContext):
 
     message = (
         "*🔥 Welcome to the battlefield! 🔥*\n\n"
-        "*Use /attack <ip> <port> <duration> <threads> (Costs 5 coins per attack)*\n"
-        "*Check your balance with /balance or by clicking the button below!*\n"
-        "*Owners & Admins can add coins using /addcoins <user_id> <amount>*\n"
-        "*Let the war begin! ⚔️💥*"
+        "*Use /attack <ip> <port> <duration> <threads>*\n\n"
+        "*⚔️ (Costs 5 coins per attack) ⚔️*\n\n"
+        "*Check your balance by clicking the button below!*\n\n"
+        "*Owners & Admins can add coins for users*\n\n"
+        "*⚔️Let the war begin! ⚔️💥*"
     )
     
     await update.message.reply_text(text=message, parse_mode='Markdown', reply_markup=reply_markup)
