@@ -3,39 +3,39 @@ import asyncio
 from telegram import Update, ReplyKeyboardMarkup
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, CallbackContext
 
-TELEGRAM_BOT_TOKEN = '7246047709:AAElzJRbgodpAq62ql3aSF2CVXkMbHqdzvA'  # Replace with your bot token
+TELEGRAM_BOT_TOKEN = '8146585403:AAFJYRvEErZ9NuZ9ufyf8cvXyWOzs0lIB4k'  # Replace with your bot token
 OWNER_USERNAME = "Riyahacksyt"  # Replace with your Telegram username (without @)
 
 user_coins = {}
 admins = set()
 running_attacks = {}
-max_duration = 180  # Default max attack duration (in seconds)
+max_duration = 300  # Default max attack duration (in seconds)
 
 async def start(update: Update, context: CallbackContext):
-    chat_id = update.effective_chat.id
+    chat_id = update.effective_chat.id  # Now works in both groups and private chats
     keyboard = [["Balance💰"]]
     reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
 
     message = (
         "*🔥 Welcome to the battlefield! 🔥*\n\n"
-        "*Use /attack <ip> <port> <duration> <threads> *\n\n"
-        "*⚔️(Costs 5 coins per attack)⚔️*\n\n"
-        "*Check your balance by clicking the button below!*\n\n"
-        "*Owners & Admins can add coins using /addcoins <user_id> <amount>*\n\n"
+        "*Use /attack <ip> <port> <duration> <threads> (Costs 5 coins per attack)*\n"
+        "*Check your balance with /balance or by clicking the button below!*\n"
+        "*Owners & Admins can add coins using /addcoins <user_id> <amount>*\n"
         "*Let the war begin! ⚔️💥*"
     )
     
     await context.bot.send_message(chat_id=chat_id, text=message, parse_mode='Markdown', reply_markup=reply_markup)
 
 async def balance(update: Update, context: CallbackContext):
-    chat_id = update.effective_chat.id
+    chat_id = update.effective_chat.id  # Send the response in the same chat
+    user_id = update.effective_user.id
     username = update.effective_user.username or "No Username"
-    coins = user_coins.get(chat_id, 0)
+    coins = user_coins.get(user_id, 0)
 
     message = (
         f"💰 *Your Balance:*\n"
         f"👤 *Username:* {username}\n"
-        f"🆔 *User ID:* {chat_id}\n"
+        f"🆔 *User ID:* {user_id}\n"
         f"💵 *Coins:* {coins}\n\n"
         f"🔹 *For more coins, contact the owner: @{OWNER_USERNAME}*"
     )
@@ -113,12 +113,13 @@ async def set_max_duration(update: Update, context: CallbackContext):
 
 async def attack(update: Update, context: CallbackContext):
     chat_id = update.effective_chat.id
+    user_id = update.effective_user.id
 
-    if running_attacks.get(chat_id, False):
+    if running_attacks.get(user_id, False):
         await context.bot.send_message(chat_id=chat_id, text="⚠️ *Attack is already running. Please wait for it to finish.*", parse_mode='Markdown')
         return
 
-    if user_coins.get(chat_id, 0) < 5:
+    if user_coins.get(user_id, 0) < 5:
         await context.bot.send_message(chat_id=chat_id, text="❌ *Not enough coins! You need 5 coins per attack.*", parse_mode='Markdown')
         return
 
@@ -135,8 +136,8 @@ async def attack(update: Update, context: CallbackContext):
         await context.bot.send_message(chat_id=chat_id, text=f"❌ *Attack duration exceeds the max limit ({max_duration} sec)!*", parse_mode='Markdown')
         return
 
-    user_coins[chat_id] -= 5
-    running_attacks[chat_id] = True
+    user_coins[user_id] -= 5
+    running_attacks[user_id] = True
 
     await context.bot.send_message(chat_id=chat_id, text=( 
         f"⚔️ *Attack Launched! ⚔️*\n"
@@ -169,7 +170,6 @@ def main():
     application.add_handler(CommandHandler("addadmin", add_admin))
     application.add_handler(CommandHandler("removeadmin", remove_admin))
     application.add_handler(CommandHandler("setmaxduration", set_max_duration))
-
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, balance_button))
 
     application.run_polling()
