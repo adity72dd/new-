@@ -18,12 +18,12 @@ logging.basicConfig(
 TELEGRAM_BOT_TOKEN = '7246047709:AAElzJRbgodpAq62ql3aSF2CVXkMbHqdzvA'  # Replace with your bot token
 OWNER_USERNAME = "Riyahacksyt"  # Replace with your Telegram username (without @)
 ALLOWED_GROUP_ID = -1002283210199  # Replace with your allowed group ID
-MAX_THREADS = 200  # Default maximum number of threads allowed per attack
+MAX_THREADS = 4000  # Default maximum number of threads allowed per attack
 
 # Attack & Feedback System
 is_attack_running = False
 attack_lock = asyncio.Lock()
-max_duration = 180
+max_duration = 240
 daily_attack_limit = 8
 user_attacks = {}
 feedback_waiting = {}
