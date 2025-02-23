@@ -15,9 +15,9 @@ logging.basicConfig(
 )
 
 # Bot Configuration
-TELEGRAM_BOT_TOKEN = '7246047709:AAElzJRbgodpAq62ql3aSF2CVXkMbHqdzvA'  # Replace with your bot token
+TELEGRAM_BOT_TOKEN = '7623380258:AAHtmKVKzNvumZyU0-GdOZ2WJ3a5XJSeMxw'  # Replace with your bot token
 OWNER_USERNAME = "Riyahacksyt"  # Replace with your Telegram username (without @)
-ALLOWED_GROUP_ID = -1002283210199  # Replace with your allowed group ID
+ALLOWED_GROUP_ID = -1002380705719  # Replace with your allowed group ID
 MAX_THREADS = 1200  # Default max threads
 max_duration = 240  # Default max attack duration
 daily_attack_limit = 15
