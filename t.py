@@ -21,8 +21,8 @@ daily_attack_limit = 8
 
 # Default Attack Parameters
 DEFAULT_THREADS = 900
-DEFAULT_PACKET_SIZE = 64
-DEFAULT_PACKETS_PER_THREAD = 550
+DEFAULT_PACKET_SIZE = 100
+DEFAULT_PACKETS_PER_THREAD = 800
 
 # Attack & Feedback System
 attack_running = False
