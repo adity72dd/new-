@@ -1,6 +1,6 @@
 import asyncio
 import logging
-from telegram._updates import Update  # Correct import for Update
+from telegram import Update  # Correct import for Update
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, CallbackContext  # Correct import for CallbackContext
 
 # Logging Configuration
